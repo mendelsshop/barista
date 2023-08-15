@@ -1,0 +1,36 @@
+[brew]
+name = "mendel"
+version = "0.1.0"
+
+[blends.m]
+author = "5"
+version = "path"
+
+[blends."name=n"]
+author = "p"
+version = "path"
+
+[blends.pizza]
+author = "version"
+version = "*"
+
+[blends.p]
+author = "p"
+version = "p"
+
+[blends.mendel]
+author = "path"
+version = "mendel"
+
+[blends.men]
+author = ""
+version = "*"
+
+[blends.y]
+author = "y"
+version = ""
+
+[blends.me]
+author = ""
+version = "*"
+
