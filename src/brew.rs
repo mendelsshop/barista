@@ -1,0 +1,1 @@
+// // javac -c lib/* main & java -c lib/* main

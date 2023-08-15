@@ -23,6 +23,10 @@ pub fn init_brew(path: &str, name: &str) {
         panic!("Error creating source directory in creation of new Brew {path}: {e}");
     }
 
+    if let Err(e) = fs::create_dir(format!("{}/lib", path)) {
+        panic!("Error creating lib directory in creation of new Brew {path}: {e}");
+    }
+
     init_main(path);
     init_config(path, name);
 }
