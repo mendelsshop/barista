@@ -1,6 +1,6 @@
 // main.rs is where the argument parsing is done using [clap](https://crates.io/crates/clap)
 
-use clap::{arg, Parser, Subcommand};
+use clap::{Parser, Subcommand};
 use config::BlendConfig;
 use craft::create_new_brew;
 
@@ -23,7 +23,7 @@ pub enum CommandType {
     Roast,
     /// Create a new [Brew] (package) with the given name
     Craft { name: String },
-    /// Add a new [Blend] (dependency) to the current brew
+    /// Add a new [Blend] (dependency) to the current brew 
     Mix(Blend),
 }
 #[derive(clap::Parser, Clone, Debug)]
@@ -31,20 +31,12 @@ pub enum CommandType {
 pub struct Blend {
     /// Blend (dependency) name
     name: String,
-    /// Blend (dependency) author (required if path or git not specified)
-    #[clap(required_unless_present_any(["git", "path"]),conflicts_with_all(["git", "path"]))]
-    author: Option<String>,
     #[clap(default_value = "*")]
     version: String,
-
-    #[arg(
-        long,
-        value_name = "url",
-        conflicts_with_all(["path", "author"])
-    )]
-    git: Option<String>,
-    #[arg(long, conflicts_with_all(["git", "author"]))]
-    path: Option<String>,
+    #[clap(flatten)]
+    author: Maven,
+    #[clap(subcommand)]
+    external_blend: Option<BlendType>,
 }
 
 #[derive(clap::Parser, Clone, Debug)]
@@ -53,22 +45,36 @@ pub struct Maven {
     author: String,
 }
 
+#[derive(clap::Subcommand, Clone, Debug)]
+pub enum BlendType {
+    // Maven needs to be a tuple so it can be used as default for mix see (https://github.com/clap-rs/clap/issues/975)
+    Maven(Maven),
+    /// Dependencies from a file located or accesable from your computer
+    Path {
+        path: String,
+    },
+    /// Dependencies from a git repository
+    Git {
+        url: String,
+    },
+}
+
 impl From<Blend> for BlendConfig {
     fn from(value: Blend) -> Self {
-        if let Some(path) = value.author {
-            Self::new_maven(value.version, path)
-        } else if let Some(path) = value.git {
-            Self::new_git(value.version, path)
-        } else if let Some(path) = value.path {
-            Self::new_path(value.version, path)
-        } else {
-            panic!("should never happen [Case: no author, path, or git url provided]")
+        let dep = value
+            .external_blend
+            .unwrap_or(BlendType::Maven(value.author));
+        match dep {
+            BlendType::Maven(m) => Self::new_maven(value.version, m.author),
+            BlendType::Path { path} => Self::new_path(value.version, path),
+            BlendType::Git { url } => Self::new_git(value.version, url),
         }
     }
 }
 
 fn main() {
     let args = Args::parse();
+
     match args.command {
         CommandType::Brew => {}
         CommandType::Roast => {}

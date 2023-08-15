@@ -1,6 +1,6 @@
 //! craft.rs handles creating new brews and initializing non-barista projects as brews
 
-const PSVM: &'static str = r#"public class Main {
+const PSVM: &str = r#"public class Main {
     public static void main(String[] args) {
         System.out.println("Hello, World!");
     }
@@ -12,7 +12,7 @@ use std::io::Write;
 use crate::config;
 
 pub fn create_new_brew(name: &str) {
-    if let Err(e) = fs::create_dir(&name) {
+    if let Err(e) = fs::create_dir(name) {
         panic!("Error creating directory {name} in creation of new Brew {name}: {e}");
     }
     init_brew(name, name)

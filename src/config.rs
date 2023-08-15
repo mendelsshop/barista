@@ -87,11 +87,12 @@ impl Config {
         match fs::File::open(path) {
             Ok(mut main) => {
                 let mut buf = String::new();
+                #[allow(clippy::redundant_pattern_matching)]
+                // we might some day return error here (instead of option)
                 if let Err(_) = main.read_to_string(&mut buf) {
                     None
                 } else {
-                    let toml = toml::from_str(&buf).ok()?;
-                    toml
+                    toml::from_str(&buf).ok()?
                 }
             }
             Err(_) => None,
@@ -99,9 +100,7 @@ impl Config {
     }
 
     pub fn find_and_open_config() -> Option<Self> {
-        Config::find_config()
-            .map(|p| Config::open_config(p))
-            .flatten()
+        Config::find_config().and_then(Config::open_config)
     }
 
     pub fn add_blend(&mut self, name: String, blend: BlendConfig) {

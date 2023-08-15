@@ -6,8 +6,7 @@ pub fn add_dependency(name: &str, blend: BlendConfig) {
     let config_file = Config::find_config();
     let mut config = config_file
         .clone()
-        .map(Config::open_config)
-        .flatten()
+        .and_then(Config::open_config)
         .expect("Couldn't find configuration");
     config.add_blend(name.to_string(), blend);
 
