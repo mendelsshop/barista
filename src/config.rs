@@ -1,6 +1,9 @@
-use std::{collections::HashMap, fs, io::Read, path::PathBuf};
+use std::{collections::HashMap, path::PathBuf, str::FromStr};
 
+use semver::VersionReq;
 use serde::{Deserialize, Serialize};
+
+use crate::utils::{find_file, open_toml};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
@@ -11,14 +14,19 @@ pub struct Config {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct BrewConfig {
     name: String,
-    version: String,
+    version: VersionReq
+}
+
+fn default_version() -> VersionReq {
+   VersionReq::STAR
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct BlendConfig {
     author: Option<String>,
     path: Option<String>,
-    version: Option<String>,
+    #[serde(default = "default_version")] 
+    version: VersionReq,
     url: Option<String>,
 }
 
@@ -27,7 +35,7 @@ impl BlendConfig {
         Self {
             author: Some(author),
             path: None,
-            version: Some(version),
+            version:  VersionReq::parse(&version).unwrap(),
             url: None,
         }
     }
@@ -36,7 +44,7 @@ impl BlendConfig {
         Self {
             author: None,
             path: None,
-            version: Some(version),
+            version:  VersionReq::parse(&version).unwrap(),
             url: Some(url),
         }
     }
@@ -45,9 +53,18 @@ impl BlendConfig {
         Self {
             author: None,
             path: Some(path),
-            version: Some(version),
+            version:  VersionReq::parse(&version).unwrap(),
             url: None,
         }
+    }
+
+    pub fn author(&self) -> Option<&String> {
+        self.author.as_ref()
+    }
+
+
+    pub fn version(&self) -> &VersionReq {
+        &self.version
     }
 }
 
@@ -57,53 +74,29 @@ impl Config {
         Self {
             brew: BrewConfig {
                 name,
-                version: "0.1.0".to_string(),
+                version:  VersionReq::from_str("0.1.0").unwrap()
             },
             blends: HashMap::new(),
         }
     }
 
-    /// Tries to find a config file in the current directory or any of its ancestors
-    pub fn find_config() -> Option<PathBuf> {
-        std::env::current_dir().ok()?.ancestors().find_map(|dir| {
-            if let Ok(mut dir) = dir.read_dir() {
-                dir.find_map(|file| {
-                    if let Ok(file) = file {
-                        if let Ok(file_type) = file.file_type() {
-                            if file_type.is_file() && file.path().ends_with("brew.toml") {
-                                return Some(file.path());
-                            }
-                        }
-                    }
-                    None
-                })
-            } else {
-                None
-            }
-        })
-    }
-
     pub fn open_config(path: PathBuf) -> Option<Self> {
-        match fs::File::open(path) {
-            Ok(mut main) => {
-                let mut buf = String::new();
-                #[allow(clippy::redundant_pattern_matching)]
-                // we might some day return error here (instead of option)
-                if let Err(_) = main.read_to_string(&mut buf) {
-                    None
-                } else {
-                    toml::from_str(&buf).ok()?
-                }
-            }
-            Err(_) => None,
-        }
+        open_toml(path)
     }
 
     pub fn find_and_open_config() -> Option<Self> {
-        Config::find_config().and_then(Config::open_config)
+        Self::find_config().and_then(Config::open_config)
     }
 
     pub fn add_blend(&mut self, name: String, blend: BlendConfig) {
         self.blends.insert(name, blend);
+    }
+
+    pub fn find_config() -> Option<PathBuf> {
+        find_file("brew.toml")
+    }
+
+    pub fn blends(&self) -> &HashMap<String, BlendConfig> {
+        &self.blends
     }
 }

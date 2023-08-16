@@ -6,11 +6,6 @@ version = "0.1.0"
 author = "junit"
 version = "4"
 
-[blends.beans]
-path = "../"
-version = "*"
-
-[blends.example]
-version = "*"
-url = "https://github.com/mendelsshop/barista"
-
+[blends.hamcrest-core]
+author = "org.hamcrest"
+version = "2"

@@ -1,1 +1,1 @@
-// javac -c lib/* main
+// javac -cp lib/* src/Main.java

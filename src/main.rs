@@ -1,13 +1,16 @@
 // main.rs is where the argument parsing is done using [clap](https://crates.io/crates/clap)
 
 use clap::{arg, Parser, Subcommand};
-use config::BlendConfig;
+use config::{BlendConfig, Config};
 use craft::create_new_brew;
 
 use crate::mix::add_dependency;
 mod config;
 mod craft;
+mod fetch;
+mod lock;
 mod mix;
+mod utils;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -71,7 +74,9 @@ fn main() {
     let args = Args::parse();
     match args.command {
         CommandType::Brew => {}
-        CommandType::Roast => {}
+        CommandType::Roast => {
+            Config::find_and_open_config().unwrap().fetch()
+        }
         CommandType::Craft { name } => create_new_brew(&name),
         CommandType::Mix(blend) => add_dependency(&blend.name.clone(), blend.into()),
     }
