@@ -1,10 +1,11 @@
-use std::str::FromStr;
+use std::{fs::File, io::Write, str::FromStr};
 
 use crate::config::{BlendConfig, Config};
-use lenient_semver::{Version, VersionBuilder};
+use async_recursion::async_recursion;
+use lenient_semver::Version;
 use reqwest::Client;
-use semver::{BuildMetadata, Comparator, Prerelease, VersionReq};
-use serde::{Deserialize, Deserializer};
+use semver::{BuildMetadata, Prerelease};
+use serde::Deserialize;
 use tokio::runtime::Builder;
 
 impl Config {
@@ -34,7 +35,7 @@ impl BlendConfig {
                 maven_author.replace(".", "/"),
                 name
             );
-            let dep_info_url = req_url + "maven-metadata.xml";
+            let dep_info_url = req_url.clone() + "maven-metadata.xml";
             let text = client
                 .get(dep_info_url)
                 .send()
@@ -43,40 +44,114 @@ impl BlendConfig {
                 .text()
                 .await
                 .unwrap();
-            let dep_info_xml = quick_xml::de::from_str::<metadata>(&text).unwrap();
-            let versions = dep_info_xml.versioning.versions.version.iter().map(to_version).filter(|version| self.version().matches(version));
-            let version = versions.max();
-            println!("{:?}", version.unwrap().to_string());
+            let dep_info_xml = quick_xml::de::from_str::<Metadata>(&text).unwrap();
+            let version = self.find_best_version(dep_info_xml).expect(&format!(
+                "couldn't find resolve version for {name} with version {}",
+                self.version()
+            ));
+            finish_download_dep(name, version.0, req_url, client).await;
         } else {
             panic!()
         }
     }
+
+    fn find_best_version<'a>(
+        &self,
+        dep_info_xml: Metadata<'a>,
+    ) -> Option<(&'a str, semver::Version)> {
+        dep_info_xml
+            .versioning
+            .versions
+            .version
+            .iter()
+            .filter_map(|s| (Version::parse(*s).ok().map(|v| (*s, v))))
+            .map(|(s, v)| (s, to_version(v)))
+            .filter(|(_, version)| self.version().matches(version))
+            .max()
+    }
+}
+#[async_recursion]
+async fn finish_download_dep(name: String, version: &str, req_url: String, client: Client) {
+    let (dep_url, dep_url_info, dep_path) = {
+        let path = format!("{}-{}", name, version);
+        let url_base = req_url + &version + "/" + &path;
+        (
+            url_base.clone() + ".jar",
+            url_base + ".pom",
+            format!("lib/{path}") + ".jar",
+        )
+    };
+    let res = client
+        .get(&dep_url)
+        .send()
+        .await
+        .or(Err(format!("Failed to GET from '{}'", dep_url)))
+        .unwrap();
+    let dep = res.bytes().await.unwrap();
+    let mut file = File::create(&dep_path)
+        .or(Err(format!("Failed to create file '{}'", dep_path)))
+        .unwrap();
+    file.write_all(&dep[..])
+        .expect(&format!("couldn't write to file '{}'", dep_path));
+    download_dep_dep(client, &dep_url_info).await;
+}
+
+// donwlads a dependencies dependencies, gets its own function, b/c we don't need to do version resolution
+async fn download_dep_dep(client: Client, pom_url: &str) {
+    let text = client
+        .get(pom_url)
+        .send()
+        .await
+        .unwrap()
+        .text()
+        .await
+        .unwrap();
+    let dep_info_xml = quick_xml::de::from_str::<Project>(&text).unwrap();
+    match dep_info_xml.dependencies {
+        Some(deps) => {
+            for dep in deps.dependency.into_iter() {
+                let req_url = format!(
+                    "https://repo1.maven.org/maven2/{}/{}/",
+                    dep.group_id.replace(".", "/"),
+                    dep.artifact_id,
+                );
+                finish_download_dep(dep.artifact_id, &dep.version, req_url, client.clone()).await;
+            }
+        }
+        None => {}
+    }
 }
 
 #[derive(Deserialize, Debug)]
-pub struct metadata<'a> {
-    groupId: String,
-    artifactId: String,
+#[serde(rename_all = "camelCase")]
+pub struct Metadata<'a> {
+    // group_id: String,
+    // artifact_id: String,
     #[serde(borrow)]
     versioning: Versioning<'a>,
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Versioning<'a> {
-    latest: Version<'a>,
-    release: Version<'a>,
+    // latest: Version<'a>,
+    // release: Version<'a>,
     #[serde(borrow)]
     versions: Versions<'a>,
-    lastUpdated: String,
+    // last_updated: String,
 }
 
 #[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
 pub struct Versions<'a> {
     #[serde(borrow)]
-    version: Vec<Version<'a>>,
+    // reason we use &str as opposed to version
+    // is because when we convert to version we don't know
+    // if version had .0 at or not
+    version: Vec<&'a str>,
 }
 
-pub fn to_version<'a>(version: &Version<'a>) -> semver::Version {
+pub fn to_version<'a>(version: Version<'a>) -> semver::Version {
     semver::Version {
         major: version.major,
         minor: version.minor,
@@ -92,4 +167,22 @@ pub fn to_version<'a>(version: &Version<'a>) -> semver::Version {
         )
         .unwrap(),
     }
+}
+
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Project {
+    dependencies: Option<Dependencies>,
+}
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Dependencies {
+    dependency: Vec<Dependency>,
+}
+#[derive(Deserialize, Debug)]
+#[serde(rename_all = "camelCase")]
+pub struct Dependency {
+    group_id: String,
+    artifact_id: String,
+    version: String,
 }

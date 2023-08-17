@@ -1,11 +1,13 @@
+use semver::Version;
+
 pub struct LockFile {
-    version: usize,
+    version: Version,
     brews: Vec<Packages>,
 }
 
 pub struct Packages {
     name: String,
-    version: usize,
+    version: Version,
     source: Option<String>,
     dependencies: Option<Vec<String>>,
 }
