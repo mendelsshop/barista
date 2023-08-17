@@ -1,5 +1,5 @@
 // main.rs is where the argument parsing is done using [clap](https://crates.io/crates/clap)
-
+// TODO: theres a lot of Error type duplication and sometimes Error types can be more specific
 use std::process::exit;
 
 use clap::{arg, Parser, Subcommand};
@@ -68,7 +68,7 @@ impl From<Blend> for BlendConfig {
         } else if let Some(path) = value.path {
             Self::new_path(value.version, path)
         } else {
-            panic!("should never happen [Case: no author, path, or git url provided]")
+            unreachable!("should never happen [Case: no author, path, or git url provided]")
         }
     }
 }
@@ -84,6 +84,11 @@ fn main() {
                 exit(1);
             }
         }
-        CommandType::Mix(blend) => add_dependency(&blend.name.clone(), blend.into()),
+        CommandType::Mix(blend) => {
+            if let Err(e) = add_dependency(&blend.name.clone(), blend.clone().into()) {
+                println!("Error adding dependency {blend:?}\n{e:?}");
+                exit(1);
+            }
+        }
     }
 }

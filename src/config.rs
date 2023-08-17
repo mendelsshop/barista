@@ -3,7 +3,7 @@ use std::{collections::HashMap, path::PathBuf};
 use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 
-use crate::utils::{find_file, open_toml};
+use crate::utils::{find_file, open_toml, FindFileError, TomlOpenError};
 
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
@@ -66,6 +66,11 @@ impl BlendConfig {
         &self.version
     }
 }
+#[derive(Debug)]
+pub enum OpenConfigError {
+    FindFileError(FindFileError),
+    TomlOpenError(TomlOpenError),
+}
 
 impl Config {
     /// Create a new config with the given name
@@ -79,19 +84,23 @@ impl Config {
         }
     }
 
-    pub fn open_config(path: PathBuf) -> Option<Self> {
+    pub fn open_config(path: &PathBuf) -> Result<Self, TomlOpenError> {
         open_toml(path)
     }
 
-    pub fn find_and_open_config() -> Option<Self> {
-        Self::find_config().and_then(Config::open_config)
+    pub fn find_and_open_config() -> Result<Self, OpenConfigError> {
+        Self::find_config()
+            .map_err(OpenConfigError::FindFileError)
+            .and_then(|config_path| {
+                Config::open_config(&config_path).map_err(OpenConfigError::TomlOpenError)
+            })
     }
 
     pub fn add_blend(&mut self, name: String, blend: BlendConfig) {
         self.blends.insert(name, blend);
     }
 
-    pub fn find_config() -> Option<PathBuf> {
+    pub fn find_config() -> Result<PathBuf, FindFileError> {
         find_file("brew.toml")
     }
 

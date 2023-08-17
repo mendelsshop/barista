@@ -111,12 +111,10 @@ async fn download_dep_dep(client: Client, pom_url: &str) {
         .unwrap();
     let dep_info_xml = quick_xml::de::from_str::<Project>(&text).expect(pom_url);
     if let Some(deps) = dep_info_xml.dependencies {
-        for dep in deps.dependency.into_iter()
-        .filter(|dep| {
+        for dep in deps.dependency.into_iter().filter(|dep| {
             dep.scope.content == MavenDependencyScopeType::Compile
                 || dep.scope.content == MavenDependencyScopeType::Runtime
-        })
-         {
+        }) {
             let req_url = format!(
                 "https://repo1.maven.org/maven2/{}/{}/",
                 dep.group_id.replace('.', "/"),
@@ -179,7 +177,7 @@ pub fn to_version(version: Version<'_>) -> semver::Version {
 pub struct Project {
     dependencies: Option<Dependencies>,
 }
-#[derive(Deserialize, Debug,)]
+#[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Dependencies {
     #[serde(default)]
