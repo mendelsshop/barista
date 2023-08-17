@@ -36,8 +36,8 @@ pub fn open_toml<T: for<'a> Deserialize<'a>>(path: PathBuf) -> Option<T> {
                     Ok(it) => it,
                     Err(e) => {
                         println!("Error reading file {e}");
-                        return None
-                    },
+                        return None;
+                    }
                 }
             }
         }

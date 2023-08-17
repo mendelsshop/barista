@@ -74,9 +74,7 @@ fn main() {
     let args = Args::parse();
     match args.command {
         CommandType::Brew => {}
-        CommandType::Roast => {
-            Config::find_and_open_config().unwrap().fetch()
-        }
+        CommandType::Roast => Config::find_and_open_config().unwrap().fetch(),
         CommandType::Craft { name } => create_new_brew(&name),
         CommandType::Mix(blend) => add_dependency(&blend.name.clone(), blend.into()),
     }

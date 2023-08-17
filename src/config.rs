@@ -14,18 +14,18 @@ pub struct Config {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct BrewConfig {
     name: String,
-    version: VersionReq
+    version: VersionReq,
 }
 
 fn default_version() -> VersionReq {
-   VersionReq::STAR
+    VersionReq::STAR
 }
 
 #[derive(Deserialize, Serialize, Debug, Clone)]
 pub struct BlendConfig {
     author: Option<String>,
     path: Option<String>,
-    #[serde(default = "default_version")] 
+    #[serde(default = "default_version")]
     version: VersionReq,
     url: Option<String>,
 }
@@ -35,7 +35,7 @@ impl BlendConfig {
         Self {
             author: Some(author),
             path: None,
-            version:  VersionReq::parse(&version).unwrap(),
+            version: VersionReq::parse(&version).unwrap(),
             url: None,
         }
     }
@@ -44,7 +44,7 @@ impl BlendConfig {
         Self {
             author: None,
             path: None,
-            version:  VersionReq::parse(&version).unwrap(),
+            version: VersionReq::parse(&version).unwrap(),
             url: Some(url),
         }
     }
@@ -53,7 +53,7 @@ impl BlendConfig {
         Self {
             author: None,
             path: Some(path),
-            version:  VersionReq::parse(&version).unwrap(),
+            version: VersionReq::parse(&version).unwrap(),
             url: None,
         }
     }
@@ -61,7 +61,6 @@ impl BlendConfig {
     pub fn author(&self) -> Option<&String> {
         self.author.as_ref()
     }
-
 
     pub fn version(&self) -> &VersionReq {
         &self.version
@@ -74,7 +73,7 @@ impl Config {
         Self {
             brew: BrewConfig {
                 name,
-                version:  VersionReq::from_str("0.1.0").unwrap()
+                version: VersionReq::from_str("0.1.0").unwrap(),
             },
             blends: HashMap::new(),
         }
