@@ -80,6 +80,7 @@ async fn finish_download_dep(name: String, version: &str, req_url: String, clien
         (
             url_base.clone() + ".jar",
             url_base + ".pom",
+            // TODO: this doesn't account for the case where barista isn't ran from the project root dir  (where lib doesnt exist)
             format!("lib/{path}") + ".jar",
         )
     };
@@ -108,9 +109,14 @@ async fn download_dep_dep(client: Client, pom_url: &str) {
         .text()
         .await
         .unwrap();
-    let dep_info_xml = quick_xml::de::from_str::<Project>(&text).unwrap();
+    let dep_info_xml = quick_xml::de::from_str::<Project>(&text).expect(pom_url);
     if let Some(deps) = dep_info_xml.dependencies {
-        for dep in deps.dependency.into_iter() {
+        for dep in deps.dependency.into_iter()
+        .filter(|dep| {
+            dep.scope.content == MavenDependencyScopeType::Compile
+                || dep.scope.content == MavenDependencyScopeType::Runtime
+        })
+         {
             let req_url = format!(
                 "https://repo1.maven.org/maven2/{}/{}/",
                 dep.group_id.replace('.', "/"),
@@ -173,15 +179,36 @@ pub fn to_version(version: Version<'_>) -> semver::Version {
 pub struct Project {
     dependencies: Option<Dependencies>,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug,)]
 #[serde(rename_all = "camelCase")]
 pub struct Dependencies {
+    #[serde(default)]
     dependency: Vec<Dependency>,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Default)]
 #[serde(rename_all = "camelCase")]
+
 pub struct Dependency {
     group_id: String,
     artifact_id: String,
     version: String,
+    #[serde(default)]
+    scope: MavenDependencyScope,
+}
+
+// We need to have this wrapper around MavenDependencyScopeType see https://docs.rs/quick-xml/latest/quick_xml/de/index.html#enumunit-variants-as-a-text
+#[derive(Deserialize, Debug, Default)]
+pub struct MavenDependencyScope {
+    #[serde(rename = "$text")]
+    content: MavenDependencyScopeType,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Deserialize, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum MavenDependencyScopeType {
+    #[default]
+    Compile,
+    Runtime,
+    Test,
+    Provided,
 }

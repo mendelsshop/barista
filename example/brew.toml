@@ -5,3 +5,7 @@ version = "0.1.0"
 [blends.junit]
 author = "junit"
 version = "4"
+
+[blends.emoji-java]
+author = "com.vdurmont"
+version = "5"
