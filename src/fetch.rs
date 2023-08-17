@@ -113,7 +113,7 @@ async fn download_dep_dep(client: Client, pom_url: &str) {
     if let Some(deps) = dep_info_xml.dependencies {
         for dep in deps.dependency.into_iter().filter(|dep| {
             dep.scope.content == MavenDependencyScopeType::Compile
-                || dep.scope.content == MavenDependencyScopeType::Runtime
+                || dep.scope.content == MavenDependencyScopeType::Runtime || dep.optinal
         }) {
             let req_url = format!(
                 "https://repo1.maven.org/maven2/{}/{}/",
@@ -172,6 +172,7 @@ pub fn to_version(version: Version<'_>) -> semver::Version {
     }
 }
 
+/// full spec found https://maven.apache.org/xsd/maven-4.0.0.xsd
 #[derive(Deserialize, Debug)]
 #[serde(rename_all = "camelCase")]
 pub struct Project {
@@ -192,6 +193,8 @@ pub struct Dependency {
     version: String,
     #[serde(default)]
     scope: MavenDependencyScope,
+    #[serde(default)]
+    optinal: bool,
 }
 
 // We need to have this wrapper around MavenDependencyScopeType see https://docs.rs/quick-xml/latest/quick_xml/de/index.html#enumunit-variants-as-a-text
