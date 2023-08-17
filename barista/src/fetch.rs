@@ -113,7 +113,8 @@ async fn download_dep_dep(client: Client, pom_url: &str) {
     if let Some(deps) = dep_info_xml.dependencies {
         for dep in deps.dependency.into_iter().filter(|dep| {
             (dep.scope.content == MavenDependencyScopeType::Compile
-                || dep.scope.content == MavenDependencyScopeType::Runtime) && !dep.optional
+                || dep.scope.content == MavenDependencyScopeType::Runtime)
+                && !dep.optional
         }) {
             let req_url = format!(
                 "https://repo1.maven.org/maven2/{}/{}/",
