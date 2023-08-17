@@ -32,7 +32,7 @@ impl BlendConfig {
         if let Some(maven_author) = self.author() {
             let req_url = format!(
                 "https://repo1.maven.org/maven2/{}/{}/",
-                maven_author.replace(".", "/"),
+                maven_author.replace('.', "/"),
                 name
             );
             let dep_info_url = req_url.clone() + "maven-metadata.xml";
@@ -45,10 +45,12 @@ impl BlendConfig {
                 .await
                 .unwrap();
             let dep_info_xml = quick_xml::de::from_str::<Metadata>(&text).unwrap();
-            let version = self.find_best_version(dep_info_xml).expect(&format!(
-                "couldn't find resolve version for {name} with version {}",
-                self.version()
-            ));
+            let version = self.find_best_version(dep_info_xml).unwrap_or_else(|| {
+                panic!(
+                    "couldn't find resolve version for {name} with version {}",
+                    self.version()
+                )
+            });
             finish_download_dep(name, version.0, req_url, client).await;
         } else {
             panic!()
@@ -64,7 +66,7 @@ impl BlendConfig {
             .versions
             .version
             .iter()
-            .filter_map(|s| (Version::parse(*s).ok().map(|v| (*s, v))))
+            .filter_map(|s| (Version::parse(s).ok().map(|v| (*s, v))))
             .map(|(s, v)| (s, to_version(v)))
             .filter(|(_, version)| self.version().matches(version))
             .max()
@@ -74,7 +76,7 @@ impl BlendConfig {
 async fn finish_download_dep(name: String, version: &str, req_url: String, client: Client) {
     let (dep_url, dep_url_info, dep_path) = {
         let path = format!("{}-{}", name, version);
-        let url_base = req_url + &version + "/" + &path;
+        let url_base = req_url + version + "/" + &path;
         (
             url_base.clone() + ".jar",
             url_base + ".pom",
@@ -92,7 +94,7 @@ async fn finish_download_dep(name: String, version: &str, req_url: String, clien
         .or(Err(format!("Failed to create file '{}'", dep_path)))
         .unwrap();
     file.write_all(&dep[..])
-        .expect(&format!("couldn't write to file '{}'", dep_path));
+        .unwrap_or_else(|_| panic!("couldn't write to file '{}'", dep_path));
     download_dep_dep(client, &dep_url_info).await;
 }
 
@@ -107,18 +109,15 @@ async fn download_dep_dep(client: Client, pom_url: &str) {
         .await
         .unwrap();
     let dep_info_xml = quick_xml::de::from_str::<Project>(&text).unwrap();
-    match dep_info_xml.dependencies {
-        Some(deps) => {
-            for dep in deps.dependency.into_iter() {
-                let req_url = format!(
-                    "https://repo1.maven.org/maven2/{}/{}/",
-                    dep.group_id.replace(".", "/"),
-                    dep.artifact_id,
-                );
-                finish_download_dep(dep.artifact_id, &dep.version, req_url, client.clone()).await;
-            }
+    if let Some(deps) = dep_info_xml.dependencies {
+        for dep in deps.dependency.into_iter() {
+            let req_url = format!(
+                "https://repo1.maven.org/maven2/{}/{}/",
+                dep.group_id.replace('.', "/"),
+                dep.artifact_id,
+            );
+            finish_download_dep(dep.artifact_id, &dep.version, req_url, client.clone()).await;
         }
-        None => {}
     }
 }
 
@@ -151,7 +150,7 @@ pub struct Versions<'a> {
     version: Vec<&'a str>,
 }
 
-pub fn to_version<'a>(version: Version<'a>) -> semver::Version {
+pub fn to_version(version: Version<'_>) -> semver::Version {
     semver::Version {
         major: version.major,
         minor: version.minor,

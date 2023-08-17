@@ -1,6 +1,6 @@
-use std::{collections::HashMap, path::PathBuf, str::FromStr};
+use std::{collections::HashMap, path::PathBuf};
 
-use semver::VersionReq;
+use semver::{Version, VersionReq};
 use serde::{Deserialize, Serialize};
 
 use crate::utils::{find_file, open_toml};
@@ -14,7 +14,7 @@ pub struct Config {
 #[derive(Deserialize, Serialize, Debug)]
 pub struct BrewConfig {
     name: String,
-    version: VersionReq,
+    version: Version,
 }
 
 fn default_version() -> VersionReq {
@@ -31,29 +31,29 @@ pub struct BlendConfig {
 }
 
 impl BlendConfig {
-    pub fn new_maven(version: String, author: String) -> Self {
+    pub fn new_maven(version: VersionReq, author: String) -> Self {
         Self {
             author: Some(author),
             path: None,
-            version: VersionReq::parse(&version).unwrap(),
+            version,
             url: None,
         }
     }
 
-    pub fn new_git(version: String, url: String) -> Self {
+    pub fn new_git(version: VersionReq, url: String) -> Self {
         Self {
             author: None,
             path: None,
-            version: VersionReq::parse(&version).unwrap(),
+            version,
             url: Some(url),
         }
     }
 
-    pub fn new_path(version: String, path: String) -> Self {
+    pub fn new_path(version: VersionReq, path: String) -> Self {
         Self {
             author: None,
             path: Some(path),
-            version: VersionReq::parse(&version).unwrap(),
+            version,
             url: None,
         }
     }
@@ -73,7 +73,7 @@ impl Config {
         Self {
             brew: BrewConfig {
                 name,
-                version: VersionReq::from_str("0.1.0").unwrap(),
+                version: Version::new(0, 1, 0),
             },
             blends: HashMap::new(),
         }

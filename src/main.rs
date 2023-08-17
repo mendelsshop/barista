@@ -1,8 +1,11 @@
 // main.rs is where the argument parsing is done using [clap](https://crates.io/crates/clap)
 
+use std::process::exit;
+
 use clap::{arg, Parser, Subcommand};
 use config::{BlendConfig, Config};
 use craft::create_new_brew;
+use semver::VersionReq;
 
 use crate::mix::add_dependency;
 mod config;
@@ -38,7 +41,7 @@ pub struct Blend {
     #[clap(required_unless_present_any(["git", "path"]),conflicts_with_all(["git", "path"]))]
     author: Option<String>,
     #[clap(default_value = "*")]
-    version: String,
+    version: VersionReq,
 
     #[arg(
         long,
@@ -75,7 +78,12 @@ fn main() {
     match args.command {
         CommandType::Brew => {}
         CommandType::Roast => Config::find_and_open_config().unwrap().fetch(),
-        CommandType::Craft { name } => create_new_brew(&name),
+        CommandType::Craft { name } => {
+            if let Err(e) = create_new_brew(&name) {
+                println!("Error creating new Brew\n{e}");
+                exit(1);
+            }
+        }
         CommandType::Mix(blend) => add_dependency(&blend.name.clone(), blend.into()),
     }
 }

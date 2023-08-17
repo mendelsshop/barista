@@ -6,72 +6,56 @@ const PSVM: &str = r#"public class Main {
     }
 }"#;
 
-use std::fs;
-use std::io::Write;
+const GITIGNORE: &str = "/lib
+/bin";
 
-use crate::config;
+// TOOD: should probably wrap around io::Result, so the user doesn't just get creation of x file/dir failed
+// but rather creation of root directory failed ...
 
-pub fn create_new_brew(name: &str) {
-    if let Err(e) = fs::create_dir(name) {
-        panic!("Error creating directory {name} in creation of new Brew {name}: {e}");
-    }
+use std::{
+    fs::{self, File},
+    io::{self, Write},
+};
+
+use crate::config::Config;
+
+pub fn create_new_brew(name: &str) -> io::Result<()> {
+    fs::create_dir(name)?;
     init_brew(name, name)
 }
 
-pub fn init_brew(path: &str, name: &str) {
-    if let Err(e) = fs::create_dir(format!("{}/src", path)) {
-        panic!("Error creating source directory in creation of new Brew {path}: {e}");
-    }
+pub fn init_brew(path: &str, name: &str) -> io::Result<()> {
+    fs::create_dir(format!("{}/src", path))?;
 
-    if let Err(e) = fs::create_dir(format!("{}/lib", path)) {
-        panic!("Error creating lib directory in creation of new Brew {path}: {e}");
-    }
+    // TODO: this the lib directory should be created at compile time
+    fs::create_dir(format!("{}/lib", path))?;
 
-    init_main(path);
-    init_config(path, name);
+    init_main(path)?;
+    init_gitignore(path)?;
+    init_config(path, name)
 }
 
-fn init_config(path: &str, name: &str) {
-    match fs::File::options()
-        .write(true)
-        .create(true)
-        .open(format!("{path}/brew.toml"))
-    {
-        Ok(mut config_file) => {
-            let config = config::Config::new(name.to_string());
-            if let Err(e) = writeln!(config_file, "{}", toml::to_string(&config).unwrap()) {
-                panic!(
-                    "Error initializing brew.toml file could not write default config to file: {}",
-                    e
-                )
-            }
-        }
-        Err(e) => {
-            panic!(
-                "Error initializing brew.toml file could not create brew.toml file: {}",
-                e
-            )
-        }
-    }
+fn init_file(path: &str, contents: &str) -> io::Result<()> {
+    writeln!(
+        File::options().write(true).create(true).open(path)?,
+        "{}",
+        contents
+    )
+}
+fn init_config(path: &str, name: &str) -> io::Result<()> {
+    init_file(
+        &format!("{path}/brew.toml"),
+        // TODO: could be slightly better error message
+        &toml::to_string(&Config::new(name.to_string()))
+            .expect("default brew.toml should not fail toml format [please file a bug]"),
+    )
 }
 
 // TODO: when initializing non-barista packages we should account for Main.java being already created
-fn init_main(path: &str) {
-    match fs::File::options()
-        .create(true)
-        .write(true)
-        .open(format!("{path}/src/Main.java"))
-    {
-        Ok(mut main) => {
-            if let Err(e) = writeln!(main, "{}", PSVM) {
-                panic!("Error initializing Main.java file could not write hello world implementation to file: {}", e)
-            }
-        }
-        Err(e) => {
-            panic!(
-                "Error initializing Main.java file could not create Main.java file: {}",
-                e
-            )
-        }
-    }
+fn init_main(path: &str) -> io::Result<()> {
+    init_file(&format!("{path}/src/Main.java"), PSVM)
+}
+
+fn init_gitignore(path: &str) -> io::Result<()> {
+    init_file(&format!("{path}/.gitignore"), GITIGNORE)
 }
