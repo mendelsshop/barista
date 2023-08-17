@@ -112,8 +112,8 @@ async fn download_dep_dep(client: Client, pom_url: &str) {
     let dep_info_xml = quick_xml::de::from_str::<Project>(&text).expect(pom_url);
     if let Some(deps) = dep_info_xml.dependencies {
         for dep in deps.dependency.into_iter().filter(|dep| {
-            dep.scope.content == MavenDependencyScopeType::Compile
-                || dep.scope.content == MavenDependencyScopeType::Runtime || dep.optinal
+            (dep.scope.content == MavenDependencyScopeType::Compile
+                || dep.scope.content == MavenDependencyScopeType::Runtime) && !dep.optional
         }) {
             let req_url = format!(
                 "https://repo1.maven.org/maven2/{}/{}/",
@@ -194,7 +194,7 @@ pub struct Dependency {
     #[serde(default)]
     scope: MavenDependencyScope,
     #[serde(default)]
-    optinal: bool,
+    optional: bool,
 }
 
 // We need to have this wrapper around MavenDependencyScopeType see https://docs.rs/quick-xml/latest/quick_xml/de/index.html#enumunit-variants-as-a-text

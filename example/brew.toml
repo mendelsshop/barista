@@ -10,3 +10,7 @@ version = "^4"
 author = "com.vdurmont"
 version = "^5"
 
+[blends.sushi]
+author = "net.oneandone"
+version = "*"
+
