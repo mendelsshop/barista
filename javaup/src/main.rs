@@ -34,7 +34,9 @@ pub enum ListType {
 fn main() {
     let args = Args::parse();
     match args.command {
-        CommandType::Install(_) => todo!(),
+        CommandType::Install(jdkinfo) => request_builder::RequestBuilder::new()
+            .install(jdkinfo)
+            .execute(),
         CommandType::List { listtype } => request_builder::RequestBuilder::new()
             .list(listtype)
             .execute(),
