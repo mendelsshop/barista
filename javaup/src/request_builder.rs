@@ -59,7 +59,8 @@ impl RequestBuilder {
 
     pub fn install(mut self, jdk: ToolChain) -> Self {
         self.url = format!(
-            "{}packages/jdks?version={}&distribution={}&architecture={ARCH}&archive_type=tar.gz&operating_system{OS}&lib_c_type={}",
+            // we inclue `&archive_type=tar` but there seems to be no jdk with that type of archaive
+            "{}packages/jdks?version={}&distribution={}&architecture={ARCH}&archive_type=tar.gz&archive_type=tar&archive_type=zip&operating_system{OS}&lib_c_type={}&latest=overall&free_to_use_in_production=true",
             self.url, jdk.version, jdk.distribution, lib_c_name()
         );
         let execute = |req, runtime: &Runtime| {
@@ -132,6 +133,15 @@ async fn install_jdk(req: reqwest::RequestBuilder) {
     fs::create_dir(&path).expect(
         "failed to create jdk versiom directory, initialzaition of new jdk cannot continue",
     );
+    // this seems to not work for macos
+    // b/c macos jdk archieve (besisdes for zulu ones (so far))
+    // have format when extracted root-dir (usually has jdk version in it)/Contents/Home
+    // although there is a dylib in root/Contents/Macos
+    // and plist in root/Content
+
+    // for zulu on macos its root/(syslinks to all the needed things almost like linux) and root/innerroot/(same as other macos versions)
+
+    // We also need to handle zips
     unpack_sans_parent(a, path)
         .expect("failed to unpack jdk, initialzaition of new jdk cannot continue");
     let mut config = config_file();
