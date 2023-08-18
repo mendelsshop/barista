@@ -142,8 +142,16 @@ async fn install_jdk(req: reqwest::RequestBuilder) {
     // for zulu on macos its root/(syslinks to all the needed things almost like linux) and root/innerroot/(same as other macos versions)
 
     // We also need to handle zips
-    unpack_sans_parent(a, path)
-        .expect("failed to unpack jdk, initialzaition of new jdk cannot continue");
+    if jdkinfo.archive_type == "zips" {
+        panic!("zips is not supported")
+    }
+    if jdkinfo.operating_system == SupportedOs::Macos && jdkinfo.distribution != "zulu" {
+        unpack_sans_parent_macos(a, path)
+            .expect("failed to unpack jdk, initialzaition of new jdk cannot continue");
+    } else {
+        unpack_sans_parent(a, path)
+            .expect("failed to unpack jdk, initialzaition of new jdk cannot continue");
+    }
     let mut config = config_file();
     if config.default_jdk.is_none() {
         config.default_jdk = Some(ToolChain {
@@ -166,6 +174,24 @@ where
             .path()?
             .components()
             .skip(1) // strip top-level directory
+            .filter(|c| matches!(c, std::path::Component::Normal(_))) // prevent traversal attacks
+            .collect();
+        entry.unpack(dst.as_ref().join(path))?;
+    }
+    Ok(())
+}
+
+pub fn unpack_sans_parent_macos<R, P>(mut archive: Archive<R>, dst: P) -> Result<(), io::Error>
+where
+    R: Read,
+    P: AsRef<Path>,
+{
+    for entry in archive.entries()? {
+        let mut entry = entry?;
+        let path: PathBuf = entry
+            .path()?
+            .components()
+            .skip(3) // strip top-level directory
             .filter(|c| matches!(c, std::path::Component::Normal(_))) // prevent traversal attacks
             .collect();
         entry.unpack(dst.as_ref().join(path))?;
@@ -214,9 +240,22 @@ pub struct JDKInfo {
     jdk_version: i32,
     distribution: String,
     links: JDKDownload,
+    operating_system: SupportedOs,
+    archive_type: String,
 }
 
 #[derive(Deserialize, Debug)]
 pub struct JDKDownload {
     pkg_download_redirect: String,
+}
+#[derive(Deserialize, Debug, PartialEq, Eq)]
+pub enum SupportedOs {
+    Aix,
+    AlpineLinux,
+    Linux,
+    LinuxMusl,
+    Macos,
+    Qnx,
+    Solaris,
+    Windows,
 }
