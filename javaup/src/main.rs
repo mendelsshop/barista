@@ -1,7 +1,8 @@
 use clap::{Parser, Subcommand};
+use request_builder::{init_dirs, root_dir, unless_exists};
 // https://github.com/foojayio/discoapi
-const DEFALT_VERSION: &'static str = "17";
-const DEFALT_DISTRIBUTION: &'static str = "temurin";
+const DEFALT_VERSION: &str = "17";
+const DEFALT_DISTRIBUTION: &str = "temurin";
 
 mod request_builder;
 
@@ -32,6 +33,7 @@ pub enum ListType {
     Distributions,
 }
 fn main() {
+    unless_exists(&root_dir(), init_dirs);
     let args = Args::parse();
     match args.command {
         CommandType::Install(jdkinfo) => request_builder::RequestBuilder::new()
