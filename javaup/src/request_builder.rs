@@ -249,6 +249,7 @@ pub struct JDKDownload {
     pkg_download_redirect: String,
 }
 #[derive(Deserialize, Debug, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum SupportedOs {
     Aix,
     AlpineLinux,
