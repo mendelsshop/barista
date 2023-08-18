@@ -1,14 +1,16 @@
-use crate::{ListType, ToolChain};
+use crate::{
+    config::{add_to_path, config_file, jdkdir, unless_exists, write_config},
+    ListType, ToolChain,
+};
 use flate2::read::GzDecoder;
 use reqwest::Client;
 use serde::Deserialize;
 use std::{
-    env::consts::ARCH,
+    env::consts::{ARCH, OS},
     fs,
     io::{self, Read},
-    path::Path,
+    path::{Path, PathBuf},
 };
-use std::{env::consts::OS, path::PathBuf};
 use tar::Archive;
 use tokio::runtime::{Builder, Runtime};
 
@@ -98,36 +100,6 @@ async fn get_distributions(req: reqwest::RequestBuilder) {
     }
 }
 
-pub fn jdkdir() -> PathBuf {
-    add_to_path(root_dir(), "jdks")
-}
-
-pub fn tmpdir() -> PathBuf {
-    add_to_path(root_dir(), "tmp")
-}
-pub fn root_dir() -> PathBuf {
-    add_to_path(
-        dirs::home_dir().expect("no home directory find javaup directory, javaup cannot continue"),
-        ".javaup",
-    )
-}
-
-pub fn init_dirs() {
-    let root = root_dir();
-    fs::create_dir(root).expect(
-        "failed to create .javaup (root) directory, initialzaition of javaup cannot continue",
-    );
-    fs::create_dir(jdkdir())
-        .expect("failed to create jdks directory, initialzaition of javaup cannot continue");
-    fs::create_dir(tmpdir())
-        .expect("failed to create jdks directory, initialzaition of javaup cannot continue");
-}
-
-fn add_to_path(mut dir: PathBuf, path: &str) -> PathBuf {
-    dir.push(path);
-    dir
-}
-
 async fn install_jdk(req: reqwest::RequestBuilder) {
     let client = Client::new();
     let json: JDKInfos = req
@@ -137,36 +109,41 @@ async fn install_jdk(req: reqwest::RequestBuilder) {
         .json()
         .await
         .unwrap();
+    let jdkinfo = &json.result[0];
     let res = client
-        .get(&json.result[0].links.pkg_download_redirect)
+        .get(&jdkinfo.links.pkg_download_redirect)
         .send()
         .await
         .or(Err(format!(
             "Failed to GET from '{}'",
-            &json.result[0].links.pkg_download_redirect
+            &jdkinfo.links.pkg_download_redirect
         )))
         .unwrap();
     let dep = res.bytes().await.unwrap();
     let decompress_stream = GzDecoder::new(&dep[..]);
     let a = Archive::new(decompress_stream);
-    let dist_dir = add_to_path(jdkdir(), &json.result[0].distribution);
+    let dist_dir = add_to_path(jdkdir(), &jdkinfo.distribution);
     unless_exists(&dist_dir, || {
         fs::create_dir(&dist_dir)
     .expect("failed to create jdk distribution directory, initialzaition of new jdk cannot continue")
     });
-    let path = add_to_path(dist_dir, &json.result[0].jdk_version.to_string());
+
+    let path = add_to_path(dist_dir, &jdkinfo.jdk_version.to_string());
     fs::create_dir(&path).expect(
         "failed to create jdk versiom directory, initialzaition of new jdk cannot continue",
     );
     unpack_sans_parent(a, path)
         .expect("failed to unpack jdk, initialzaition of new jdk cannot continue");
-}
-
-pub fn unless_exists(path: &Path, f: impl Fn()) {
-    if matches!(path.try_exists(), Err(_) | Ok(false)) {
-        f()
+    let mut config = config_file();
+    if config.default_jdk.is_none() {
+        config.default_jdk = Some(ToolChain {
+            version: jdkinfo.jdk_version.to_string(),
+            distribution: jdkinfo.distribution.to_string(),
+        });
+        write_config(&config)
     }
 }
+
 // from https://users.rust-lang.org/t/moving-and-renaming-directory/44742/7
 pub fn unpack_sans_parent<R, P>(mut archive: Archive<R>, dst: P) -> Result<(), io::Error>
 where
