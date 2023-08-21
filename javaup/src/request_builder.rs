@@ -194,6 +194,11 @@ where
             .skip(3) // strip top-level directory
             .filter(|c| matches!(c, std::path::Component::Normal(_))) // prevent traversal attacks
             .collect();
+        // if there are files that are 3 dirs deep they should be skipped (might not be best approach (as we might need thes filex main offender is a .plist))
+        // another idea is to syslink everthing in roo like zulu
+        if path.iter().count() == 0 {
+            continue;
+        }
         entry.unpack(dst.as_ref().join(path))?;
     }
     Ok(())
