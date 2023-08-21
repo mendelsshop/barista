@@ -6,6 +6,7 @@ use std::{
 };
 
 use crate::ToolChain;
+
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Settings {
     pub default_jdk: Option<ToolChain>,

@@ -2,17 +2,20 @@
 // TODO: theres a lot of Error type duplication and sometimes Error types can be more specific
 use std::process::exit;
 
+use crate::brew::brew;
 use clap::{arg, Parser, Subcommand};
 use config::{BlendConfig, Config};
 use craft::create_new_brew;
 use semver::VersionReq;
 
 use crate::mix::add_dependency;
+mod brew;
 mod config;
 mod craft;
 mod fetch;
 mod lock;
 mod mix;
+mod roast;
 mod utils;
 
 #[derive(Parser, Debug)]
@@ -76,8 +79,8 @@ impl From<Blend> for BlendConfig {
 fn main() {
     let args = Args::parse();
     match args.command {
-        CommandType::Brew => {}
-        CommandType::Roast => Config::find_and_open_config().unwrap().fetch(),
+        CommandType::Brew => brew(),
+        CommandType::Roast => {}
         CommandType::Craft { name } => {
             if let Err(e) = create_new_brew(&name) {
                 println!("Error creating new Brew\n{e}");
