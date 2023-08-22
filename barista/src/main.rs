@@ -4,7 +4,7 @@ use std::process::exit;
 
 use crate::brew::brew;
 use clap::{arg, Parser, Subcommand};
-use config::{BlendConfig, Config};
+use config::BlendConfig;
 use craft::create_new_brew;
 use semver::VersionReq;
 

@@ -1,5 +1,5 @@
 // javac -cp lib/* src/Main.java
-use std::process::Command;
+use std::process::{Command, Stdio};
 
 // // javac -c lib/* main & java -c lib/* main
 use javaup::config;
@@ -27,7 +27,9 @@ pub fn roast() {
         .arg(format!("{root}/lib/*",))
         .arg(format!("{root}/src/Main.java"))
         .arg("-d")
-        .arg(format!("{root}/bin"));
+        .arg(format!("{root}/bin"))
+        .stdout(Stdio::inherit())
+        .stderr(Stdio::inherit());
 
     javac_ex.status().unwrap();
 }
