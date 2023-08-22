@@ -2,13 +2,13 @@
 // TODO: theres a lot of Error type duplication and sometimes Error types can be more specific
 use std::process::exit;
 
-use crate::brew::brew;
+use crate::{brew::brew, mix::add_dependency};
 use clap::{arg, Parser, Subcommand};
 use config::BlendConfig;
 use craft::create_new_brew;
 use semver::VersionReq;
 
-use crate::mix::add_dependency;
+
 mod brew;
 mod config;
 mod craft;

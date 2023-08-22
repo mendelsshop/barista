@@ -16,20 +16,15 @@ pub enum ConfigWriteError {
     TomlRead(TomlOpenError),
 }
 
-pub fn add_dependency(name: &str, blend: BlendConfig) -> Result<(), ConfigWriteError> {
-    let config_file = Config::find_config().map_err(ConfigWriteError::FindFile)?;
-    let mut config = Config::open_config(&config_file).map_err(ConfigWriteError::TomlRead)?;
+pub fn add_dependency(name: &str, blend: BlendConfig) -> anyhow::Result<()> {
+    let config_file = Config::find_config()?;
+    let mut config = Config::open_config(&config_file)?;
     config.add_blend(name.to_string(), blend);
 
-    let mut file = fs::OpenOptions::new()
-        .write(true)
-        .open(config_file)
-        .map_err(ConfigWriteError::FileOpen)?;
+    let mut file = fs::OpenOptions::new().write(true).open(config_file)?; // map to FileOpen
 
-    writeln!(
-        file,
-        "{}",
-        toml::to_string(&config).map_err(ConfigWriteError::TomlWrite)?
-    )
-    .map_err(ConfigWriteError::FileWrite)
+    Ok(
+        writeln!(file, "{}", toml::to_string(&config)?) // map to TomlWrite
+    ?,
+    ) // map to FileWrite
 }

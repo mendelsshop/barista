@@ -84,23 +84,20 @@ impl Config {
         }
     }
 
-    pub fn open_config(path: &PathBuf) -> Result<Self, TomlOpenError> {
+    pub fn open_config(path: &PathBuf) -> anyhow::Result<Self> {
         open_toml(path)
     }
 
-    pub fn find_and_open_config() -> Result<Self, OpenConfigError> {
-        Self::find_config()
-            .map_err(OpenConfigError::FindFileError)
-            .and_then(|config_path| {
-                Config::open_config(&config_path).map_err(OpenConfigError::TomlOpenError)
-            })
+    pub fn find_and_open_config() -> anyhow::Result<Self> {
+        Self::find_config() // map to FindFileError
+            .and_then(|config_path| Config::open_config(&config_path)) // map to TomlOpenError
     }
 
     pub fn add_blend(&mut self, name: String, blend: BlendConfig) {
         self.blends.insert(name, blend);
     }
 
-    pub fn find_config() -> Result<PathBuf, FindFileError> {
+    pub fn find_config() -> anyhow::Result<PathBuf> {
         find_file("brew.toml")
     }
 
