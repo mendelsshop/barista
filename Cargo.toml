@@ -3,3 +3,12 @@
 members = [
     "javac", "javaup", "barista"
 ]
+
+[workspace.dependencies]
+serde = { version = "1.0.185", features = ["derive"] }
+toml = "0.7.6"
+clap = { version = "4.3.23", features = ["derive"] }
+tokio = { version = "1.32.0", features = ["full"] }
+reqwest= {version = "0.11.19", features = ["json"]}
+thiserror = "1.0.47"
+anyhow = "1.0.75"
