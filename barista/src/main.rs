@@ -1,5 +1,6 @@
 // main.rs is where the argument parsing is done using [clap](https://crates.io/crates/clap)
 // TODO: theres a lot of Error type duplication and sometimes Error types can be more specific
+// TODO: check if file/dir is already there and in most cases if so do nothing
 use std::process::exit;
 
 use crate::{brew::brew, mix::add_dependency};
@@ -7,7 +8,6 @@ use clap::{arg, Parser, Subcommand};
 use config::BlendConfig;
 use craft::create_new_brew;
 use semver::VersionReq;
-
 
 mod brew;
 mod config;

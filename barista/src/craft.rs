@@ -27,9 +27,6 @@ pub fn create_new_brew(name: &str) -> anyhow::Result<()> {
 pub fn init_brew(path: &str, name: &str) -> anyhow::Result<()> {
     fs::create_dir(format!("{}/src", path))?;
 
-    // TODO: this the lib directory should be created at compile time
-    fs::create_dir(format!("{}/lib", path))?;
-
     init_main(path)?;
     init_gitignore(path)?;
     init_config(path, name)
