@@ -7,6 +7,7 @@ use crate::{brew::brew, mix::add_dependency};
 use clap::{arg, Parser, Subcommand};
 use config::BlendConfig;
 use craft::create_new_brew;
+use menu::make_menu;
 use semver::VersionReq;
 
 mod brew;
@@ -17,6 +18,7 @@ mod lock;
 mod mix;
 mod roast;
 mod utils;
+mod menu;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -34,6 +36,8 @@ pub enum CommandType {
     Craft { name: String },
     /// Add a new [Blend] (dependency) to the current brew
     Mix(Blend),
+    /// Document the current [Blend]
+    Menu
 }
 #[derive(clap::Parser, Clone, Debug)]
 #[clap(args_conflicts_with_subcommands = true)]
@@ -93,5 +97,6 @@ fn main() {
                 exit(1);
             }
         }
+        CommandType::Menu => make_menu()
     }
 }

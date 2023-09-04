@@ -7,7 +7,8 @@ const PSVM: &str = r#"public class Main {
 }"#;
 
 const GITIGNORE: &str = "/lib
-/bin";
+/bin
+/doc";
 
 // TOOD: should probably wrap around io::Result, so the user doesn't just get creation of x file/dir failed
 // but rather creation of root directory failed ...
