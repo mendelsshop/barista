@@ -39,17 +39,19 @@ pub fn find_file(file_name: &str) -> Result<PathBuf, FindFileError> {
 }
 #[derive(Debug, thiserror::Error)]
 pub enum TomlOpenError {
-    #[error("could not open file")]
-    Open(io::Error),
-    #[error("could not read file")]
-    Read(io::Error),
-    #[error("could not read file as toml")]
-    Toml(toml::de::Error),
+    #[error("error could not open file: {0}, path: {1}")]
+    Open(io::Error, String),
+    #[error("error could not read file: {0}, path: {1}")]
+    Read(io::Error, String),
+    #[error("error could not read file as toml {0}, path: {1}")]
+    Toml(toml::de::Error, String),
 }
 
 pub fn open_toml<T: for<'a> Deserialize<'a>>(path: &PathBuf) -> Result<T, TomlOpenError> {
-    let mut file = File::open(path).map_err(TomlOpenError::Open)?;
+    let mut file =
+        File::open(path).map_err(|error| TomlOpenError::Open(error, path.display().to_string()))?;
     let mut buf = String::new();
-    file.read_to_string(&mut buf).map_err(TomlOpenError::Read)?;
-    toml::from_str(&buf).map_err(TomlOpenError::Toml)
+    file.read_to_string(&mut buf)
+        .map_err(|error| TomlOpenError::Read(error, path.display().to_string()))?;
+    toml::from_str(&buf).map_err(|error| TomlOpenError::Toml(error, path.display().to_string()))
 }

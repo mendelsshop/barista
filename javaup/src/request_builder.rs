@@ -21,7 +21,11 @@ pub struct RequestBuilder {
     action: Box<dyn Fn(reqwest::RequestBuilder, &Runtime)>,
     runtime: Runtime,
 }
-
+impl Default for RequestBuilder {
+    fn default() -> Self {
+        Self::new()
+    }
+}
 impl RequestBuilder {
     pub fn new() -> Self {
         Self {

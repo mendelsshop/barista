@@ -4,7 +4,6 @@ use std::{
     process::{Command, Stdio},
 };
 
-use anyhow::Context;
 // // javac -c lib/* main & java -c lib/* main
 use javaup::config;
 
@@ -18,8 +17,7 @@ pub fn roast() {
     let java_config = config::config_file();
     let mut java_bin = config::jdkdir();
     fs::create_dir(format!("{}/lib", root))
-        .with_context(|| format!("Failed to create Brew Library (lib) when building"))
-        .unwrap();
+        .expect("Failed to create Brew Library (lib) when building");
     java_bin.push(java_config.default_jdk.clone().unwrap().distribution);
     java_bin.push(java_config.default_jdk.unwrap().version);
     java_bin.push("bin");

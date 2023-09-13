@@ -1,11 +1,10 @@
 // javac -cp lib/* src/Main.java
 use std::{
     fs,
-    io::{self, ErrorKind},
+    io::ErrorKind,
     process::{Command, Stdio},
 };
 
-use anyhow::Context;
 // // javac -c lib/* main & java -c lib/* main
 use javaup::config;
 
