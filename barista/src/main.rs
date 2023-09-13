@@ -15,10 +15,10 @@ mod config;
 mod craft;
 mod fetch;
 mod lock;
+mod menu;
 mod mix;
 mod roast;
 mod utils;
-mod menu;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -37,7 +37,7 @@ pub enum CommandType {
     /// Add a new [Blend] (dependency) to the current brew
     Mix(Blend),
     /// Document the current [Blend]
-    Menu
+    Menu,
 }
 #[derive(clap::Parser, Clone, Debug)]
 #[clap(args_conflicts_with_subcommands = true)]
@@ -97,6 +97,6 @@ fn main() {
                 exit(1);
             }
         }
-        CommandType::Menu => make_menu()
+        CommandType::Menu => make_menu(),
     }
 }

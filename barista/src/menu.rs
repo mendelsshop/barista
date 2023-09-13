@@ -1,7 +1,8 @@
 // javac -cp lib/* src/Main.java
 use std::{
     fs,
-    process::{Command, Stdio}, io::{ErrorKind, self},
+    io::{self, ErrorKind},
+    process::{Command, Stdio},
 };
 
 use anyhow::Context;
@@ -19,7 +20,10 @@ pub fn make_menu() {
     let mut java_bin = config::jdkdir();
     // create docs dir if doest exist
     let create_dir = fs::create_dir(format!("{}/doc", root));
-    if create_dir.as_ref().is_err_and(|e| e.kind() != ErrorKind::AlreadyExists) {
+    if create_dir
+        .as_ref()
+        .is_err_and(|e| e.kind() != ErrorKind::AlreadyExists)
+    {
         panic!("error creating doc dir: {}", create_dir.unwrap_err())
     }
     java_bin.push(java_config.default_jdk.clone().unwrap().distribution);
@@ -38,7 +42,8 @@ pub fn make_menu() {
         .arg("-d")
         .arg(format!("{root}/doc"))
         // ignoring output untill we have good way to filter/present it
-        .stdout(Stdio::null()).stderr(Stdio::null());
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
 
     javac_ex.status().unwrap();
 }

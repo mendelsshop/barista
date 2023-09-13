@@ -10,13 +10,14 @@ use serde::Deserialize;
 pub enum FindFileError {
     #[error("io error occured")]
     IO(io::Error),
-    #[error("could not find file")]
-    FileNotFound,
+    #[error("could not find {0}")]
+    FileNotFound(String),
 }
 
 /// Tries to find a config file in the current directory or any of its ancestors
-pub fn find_file(file_name: &str) -> anyhow::Result<PathBuf> {
-    std::env::current_dir()?
+pub fn find_file(file_name: &str) -> Result<PathBuf, FindFileError> {
+    std::env::current_dir()
+        .map_err(FindFileError::IO)?
         .ancestors()
         .find_map(|dir| {
             if let Ok(mut dir) = dir.read_dir() {
@@ -34,17 +35,21 @@ pub fn find_file(file_name: &str) -> anyhow::Result<PathBuf> {
                 None
             }
         })
-        .ok_or(FindFileError::FileNotFound.into())
+        .ok_or(FindFileError::FileNotFound(file_name.to_string()))
 }
-#[derive(Debug)]
+#[derive(Debug, thiserror::Error)]
 pub enum TomlOpenError {
-    IO(io::Error),
+    #[error("could not open file")]
+    Open(io::Error),
+    #[error("could not read file")]
+    Read(io::Error),
+    #[error("could not read file as toml")]
     Toml(toml::de::Error),
 }
 
-pub fn open_toml<T: for<'a> Deserialize<'a>>(path: &PathBuf) -> anyhow::Result<T> {
-    let mut file = File::open(path)?; // map to IO
+pub fn open_toml<T: for<'a> Deserialize<'a>>(path: &PathBuf) -> Result<T, TomlOpenError> {
+    let mut file = File::open(path).map_err(TomlOpenError::Open)?;
     let mut buf = String::new();
-    file.read_to_string(&mut buf)?; // map to IO
-    Ok(toml::from_str(&buf)?) // map to Toml
+    file.read_to_string(&mut buf).map_err(TomlOpenError::Read)?;
+    toml::from_str(&buf).map_err(TomlOpenError::Toml)
 }
