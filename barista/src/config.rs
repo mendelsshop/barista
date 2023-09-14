@@ -17,6 +17,16 @@ pub struct BrewConfig {
     version: Version,
 }
 
+impl BrewConfig {
+    pub fn version(&self) -> &Version {
+        &self.version
+    }
+
+    pub fn name(&self) -> &str {
+        self.name.as_ref()
+    }
+}
+
 fn default_version() -> VersionReq {
     VersionReq::STAR
 }
@@ -101,10 +111,14 @@ impl Config {
     }
 
     pub fn find_config() -> Result<PathBuf, FindFileError> {
-        find_file("brew.toml")
+        find_file("Brew.toml")
     }
 
     pub fn blends(&self) -> &HashMap<String, BlendConfig> {
         &self.blends
+    }
+
+    pub fn brew(&self) -> &BrewConfig {
+        &self.brew
     }
 }

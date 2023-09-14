@@ -73,10 +73,10 @@ fn init_file(path: &str, contents: &str, ft: FileType) -> Result<(), BrewCreatio
 }
 fn init_config(path: &str, name: &str) -> Result<(), BrewCreationError> {
     init_file(
-        &format!("{path}/brew.toml"),
+        &format!("{path}/Brew.toml"),
         // TODO: could be slightly better error message
         &toml::to_string(&Config::new(name.to_string()))
-            .expect("default brew.toml should not fail toml format [please file a bug]"),
+            .expect("default Brew.toml should not fail toml format [please file a bug]"),
         FileType::Config,
     )
 }

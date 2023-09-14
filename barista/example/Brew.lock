@@ -1,0 +1,31 @@
+name = "example"
+version = "0.1.0"
+
+[[brews]]
+name = "json"
+version = "20170516"
+authors = "org.json"
+url = "https://repo1.maven.org/maven2/org/json/json/"
+dependencies = []
+
+[[brews]]
+name = "emoji-java"
+version = "5.1.1"
+authors = "com.vdurmont"
+url = "https://repo1.maven.org/maven2/com/vdurmont/emoji-java/"
+dependencies = ["json"]
+
+[[brews]]
+name = "sushi"
+version = "3.3.0"
+authors = "net.oneandone"
+url = "https://repo1.maven.org/maven2/net/oneandone/sushi/"
+dependencies = []
+
+[[brews]]
+name = "junit"
+version = "4.9.0"
+authors = "junit"
+url = "https://repo1.maven.org/maven2/junit/junit/"
+dependencies = ["hamcrest-core"]
+

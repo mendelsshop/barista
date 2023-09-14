@@ -1,6 +1,15 @@
-use std::{fs::File, io::Write, str::FromStr};
+use std::{
+    fs::File,
+    io::Write,
+    path::PathBuf,
+    str::FromStr,
+    sync::{Arc, Mutex},
+};
 
-use crate::config::{BlendConfig, Config};
+use crate::{
+    config::{BlendConfig, Config},
+    lock::{LockFile, Package},
+};
 use async_recursion::async_recursion;
 use lenient_semver::Version;
 use reqwest::Client;
@@ -10,6 +19,8 @@ use tokio::runtime::Builder;
 
 impl Config {
     pub fn fetch(&self) {
+        let lock_file = LockFile::new(self.brew().name().to_owned(), self.brew().version().clone());
+        let locked_lock_file = Arc::new(Mutex::new(lock_file));
         let runtime = Builder::new_multi_thread()
             .worker_threads(1)
             .enable_all()
@@ -17,17 +28,27 @@ impl Config {
             .unwrap();
         let mut dep_handles = Vec::with_capacity(self.blends().len());
         for (dep_name, dep_info) in self.blends().clone() {
-            dep_handles.push(runtime.spawn(dep_info.fetch_maven(dep_name)))
+            dep_handles
+                .push(runtime.spawn(dep_info.fetch_maven(dep_name, locked_lock_file.clone())));
         }
         for handle in dep_handles {
             // The `spawn` method returns a `JoinHandle`. A `JoinHandle` is
             // a future, so we can wait for it using `block_on`.
             runtime.block_on(handle).unwrap();
         }
+        let lock_file = locked_lock_file.lock().unwrap();
+        let lock_file_path = get_lock_path();
+        let mut lock_file_file = File::create(lock_file_path).unwrap();
+        writeln!(
+            lock_file_file,
+            "{}",
+            toml::ser::to_string(&*lock_file).unwrap()
+        )
+        .expect("Could not write new Barista.lock after fetching dependencies");
     }
 }
 impl BlendConfig {
-    async fn fetch_maven(self, name: String) {
+    async fn fetch_maven(self, name: String, locked_lock_file: Arc<Mutex<LockFile>>) {
         let client = Client::new();
         if let Some(maven_author) = self.author() {
             let req_url = format!(
@@ -51,7 +72,26 @@ impl BlendConfig {
                     self.version()
                 )
             });
-            finish_download_dep(name, version.0, req_url, client).await;
+
+            let blend_dep = Package::new(
+                name.clone(),
+                version.1.to_string(),
+                maven_author.clone(),
+                // TODO: get the user frinedly url for this dependency too
+                req_url.clone(),
+                None,
+                None,
+            );
+
+            finish_download_dep(
+                name,
+                version.0,
+                req_url,
+                client,
+                locked_lock_file,
+                blend_dep,
+            )
+            .await;
         } else {
             panic!()
         }
@@ -73,7 +113,14 @@ impl BlendConfig {
     }
 }
 #[async_recursion]
-async fn finish_download_dep(name: String, version: &str, req_url: String, client: Client) {
+async fn finish_download_dep(
+    name: String,
+    version: &str,
+    req_url: String,
+    client: Client,
+    locked_lock_file: Arc<Mutex<LockFile>>,
+    package: Package,
+) {
     let (dep_url, dep_url_info, dep_path) = {
         let path = format!("{}-{}", name, version);
         let url_base = req_url + version + "/" + &path;
@@ -96,11 +143,16 @@ async fn finish_download_dep(name: String, version: &str, req_url: String, clien
         .unwrap();
     file.write_all(&dep[..])
         .unwrap_or_else(|_| panic!("couldn't write to file '{}'", dep_path));
-    download_dep_dep(client, &dep_url_info).await;
+    download_dep_dep(client, &dep_url_info, locked_lock_file, package).await;
 }
 
 // donwlads a dependencies dependencies, gets its own function, b/c we don't need to do version resolution
-async fn download_dep_dep(client: Client, pom_url: &str) {
+async fn download_dep_dep(
+    client: Client,
+    pom_url: &str,
+    locked_lock_file: Arc<Mutex<LockFile>>,
+    mut package: Package,
+) {
     let text = client
         .get(pom_url)
         .send()
@@ -111,19 +163,53 @@ async fn download_dep_dep(client: Client, pom_url: &str) {
         .unwrap();
     let dep_info_xml = quick_xml::de::from_str::<Project>(&text).expect(pom_url);
     if let Some(deps) = dep_info_xml.dependencies {
-        for dep in deps.dependency.into_iter().filter(|dep| {
+        let filterdeps = deps.dependency.into_iter().filter(|dep| {
             (dep.scope.content == MavenDependencyScopeType::Compile
                 || dep.scope.content == MavenDependencyScopeType::Runtime)
                 && !dep.optional
-        }) {
+        });
+        for dep in filterdeps.clone() {
             let req_url = format!(
                 "https://repo1.maven.org/maven2/{}/{}/",
                 dep.group_id.replace('.', "/"),
                 dep.artifact_id,
             );
-            finish_download_dep(dep.artifact_id, &dep.version, req_url, client.clone()).await;
+            let blend_dep = Package::new(
+                dep.artifact_id.clone(),
+                dep.version.clone(),
+                dep.group_id.clone(),
+                req_url.clone(),
+                None,
+                None,
+            );
+            finish_download_dep(
+                dep.artifact_id,
+                &dep.version,
+                req_url,
+                client.clone(),
+                locked_lock_file.clone(),
+                blend_dep,
+            )
+            .await;
         }
+        // get all parent dependencies as names
+        let deps = filterdeps.map(|dep| dep.artifact_id).collect();
+        package.set_dependencies(deps);
+        write_package_to_lockfile(package, locked_lock_file);
     }
+}
+
+fn write_package_to_lockfile(packed: Package, locked_lock_file: Arc<Mutex<LockFile>>) {
+    if let Ok(mut lock_file) = locked_lock_file.lock() {
+        lock_file.push(packed);
+    }
+}
+
+fn get_lock_path() -> PathBuf {
+    let binding = Config::find_config().unwrap();
+    let mut root = binding.parent().unwrap().to_path_buf();
+    root.push("Brew.lock");
+    root
 }
 
 #[derive(Deserialize, Debug)]
@@ -179,13 +265,13 @@ pub fn to_version(version: Version<'_>) -> semver::Version {
 pub struct Project {
     dependencies: Option<Dependencies>,
 }
-#[derive(Deserialize, Debug)]
+#[derive(Deserialize, Debug, Clone)]
 #[serde(rename_all = "camelCase")]
 pub struct Dependencies {
     #[serde(default)]
     dependency: Vec<Dependency>,
 }
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 #[serde(rename_all = "camelCase")]
 
 pub struct Dependency {
@@ -199,7 +285,7 @@ pub struct Dependency {
 }
 
 // We need to have this wrapper around MavenDependencyScopeType see https://docs.rs/quick-xml/latest/quick_xml/de/index.html#enumunit-variants-as-a-text
-#[derive(Deserialize, Debug, Default)]
+#[derive(Deserialize, Debug, Default, Clone)]
 pub struct MavenDependencyScope {
     #[serde(rename = "$text")]
     content: MavenDependencyScopeType,
