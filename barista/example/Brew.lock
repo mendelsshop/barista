@@ -2,6 +2,13 @@ name = "example"
 version = "0.1.0"
 
 [[brews]]
+name = "sushi"
+version = "3.3.0"
+authors = "net.oneandone"
+url = "https://repo1.maven.org/maven2/net/oneandone/sushi/"
+dependencies = []
+
+[[brews]]
 name = "json"
 version = "20170516"
 authors = "org.json"
@@ -14,13 +21,6 @@ version = "5.1.1"
 authors = "com.vdurmont"
 url = "https://repo1.maven.org/maven2/com/vdurmont/emoji-java/"
 dependencies = ["json"]
-
-[[brews]]
-name = "sushi"
-version = "3.3.0"
-authors = "net.oneandone"
-url = "https://repo1.maven.org/maven2/net/oneandone/sushi/"
-dependencies = []
 
 [[brews]]
 name = "junit"

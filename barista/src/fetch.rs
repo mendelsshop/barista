@@ -1,14 +1,14 @@
 use std::{
-    fs::File,
+    fs::{File, self},
     io::Write,
-    path::PathBuf,
+    path::{PathBuf, Path},
     str::FromStr,
     sync::{Arc, Mutex},
 };
 
 use crate::{
     config::{BlendConfig, Config},
-    lock::{LockFile, Package},
+    lock::{LockFile, Package}, utils::unless_exists,
 };
 use async_recursion::async_recursion;
 use lenient_semver::Version;
@@ -19,6 +19,12 @@ use tokio::runtime::Builder;
 
 impl Config {
     pub fn fetch(&self) {
+        let binding = crate::config::get_root_path().unwrap();
+        let root = binding.display();
+        unless_exists(Path::new(&format!("{root}/lib")), || {
+            fs::create_dir_all(format!("{root}/lib"))
+                .expect("Failed to create Brew Library directory (lib) when building")
+        });
         let lock_file = LockFile::new(self.brew().name().to_owned(), self.brew().version().clone());
         let locked_lock_file = Arc::new(Mutex::new(lock_file));
         let runtime = Builder::new_multi_thread()
