@@ -1,20 +1,17 @@
-// javac -cp lib/* src/Main.java
 use std::{
     fs,
     io::ErrorKind,
     process::{Command, Stdio},
 };
 
-// // javac -c lib/* main & java -c lib/* main
 use javaup::config;
 
 use crate::config::Config;
 
 pub fn make_menu() {
     Config::find_and_open_config().unwrap().fetch();
-    // TODO: need better way obtaining this brews root directory
-    let binding = Config::find_config().unwrap();
-    let root = binding.parent().unwrap().display();
+    let binding = crate::config::get_root_path().unwrap();
+    let root = binding.display();
     let java_config = config::config_file();
     let mut java_bin = config::jdkdir();
     // create docs dir if doest exist

@@ -11,9 +11,8 @@ use crate::config::Config;
 
 pub fn roast() {
     Config::find_and_open_config().unwrap().fetch();
-    // TODO: need better way obtaining this brews root directory
-    let binding = Config::find_config().unwrap();
-    let root = binding.parent().unwrap().display();
+    let binding = crate::config::get_root_path().unwrap();
+    let root = binding.display();
     let java_config = config::config_file();
     let mut java_bin = config::jdkdir();
     fs::create_dir(format!("{}/lib", root))

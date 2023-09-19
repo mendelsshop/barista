@@ -122,3 +122,17 @@ impl Config {
         &self.brew
     }
 }
+
+#[derive(Debug)]
+pub enum FindRootError {
+    FindFileError(FindFileError),
+    FoundConfigWithoutRoot,
+}
+
+pub fn get_root_path() -> Result<PathBuf, FindRootError> {
+    find_file("Brew.toml")
+        .map_err(FindRootError::FindFileError)?
+        .parent()
+        .map(|path| path.to_path_buf())
+        .ok_or(FindRootError::FoundConfigWithoutRoot)
+}
