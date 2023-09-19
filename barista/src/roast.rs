@@ -1,13 +1,14 @@
 // javac -cp lib/* src/Main.java
 use std::{
     fs,
+    path::Path,
     process::{Command, Stdio},
 };
 
 // // javac -c lib/* main & java -c lib/* main
 use javaup::config;
 
-use crate::config::Config;
+use crate::{config::Config, utils::unless_exists};
 
 pub fn roast() {
     Config::find_and_open_config().unwrap().fetch();
@@ -15,8 +16,10 @@ pub fn roast() {
     let root = binding.display();
     let java_config = config::config_file();
     let mut java_bin = config::jdkdir();
-    fs::create_dir(format!("{}/lib", root))
-        .expect("Failed to create Brew Library (lib) when building");
+    unless_exists(Path::new(&format!("{root}/lib")), || {
+        fs::create_dir_all(format!("{root}/lib"))
+            .expect("Failed to create Brew Library directory (lib) when building")
+    });
     java_bin.push(java_config.default_jdk.clone().unwrap().distribution);
     java_bin.push(java_config.default_jdk.unwrap().version);
     java_bin.push("bin");

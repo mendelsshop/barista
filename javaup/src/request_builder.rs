@@ -3,6 +3,7 @@ use crate::{
     ListType, ToolChain,
 };
 use flate2::read::GzDecoder;
+use platforms::target::Env;
 use reqwest::Client;
 use serde::Deserialize;
 use std::{
@@ -149,7 +150,9 @@ async fn install_jdk(req: reqwest::RequestBuilder) {
     if jdkinfo.archive_type == "zips" {
         panic!("zips is not supported")
     }
-    if jdkinfo.operating_system == SupportedOs::Macos && jdkinfo.distribution != "zulu" {
+    if jdkinfo.operating_system == SupportedOs::Macos && jdkinfo.distribution != "zulu"
+        || jdkinfo.distribution == "zulu_prime"
+    {
         unpack_sans_parent_macos(a, path)
             .expect("failed to unpack jdk, initialzaition of new jdk cannot continue");
     } else {
@@ -211,9 +214,9 @@ where
 pub const fn lib_c_name() -> &'static str {
     match platforms::TARGET_ENV {
         Some(env) => match env {
-            platforms::target::Env::Gnu => "glibc",
-            platforms::target::Env::Msvc => "c_std_lib",
-            platforms::target::Env::Musl => "musl",
+            Env::Gnu => "glibc",
+            Env::Msvc => "c_std_lib",
+            Env::Musl => "musl",
             _ => "libc",
         },
         _ => "libc",

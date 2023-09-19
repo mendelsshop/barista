@@ -1,7 +1,7 @@
 use std::{
     fs::File,
     io::{self, Read},
-    path::PathBuf,
+    path::{Path, PathBuf},
 };
 
 use serde::Deserialize;
@@ -54,4 +54,10 @@ pub fn open_toml<T: for<'a> Deserialize<'a>>(path: &PathBuf) -> Result<T, TomlOp
     file.read_to_string(&mut buf)
         .map_err(|error| TomlOpenError::Read(error, path.display().to_string()))?;
     toml::from_str(&buf).map_err(|error| TomlOpenError::Toml(error, path.display().to_string()))
+}
+
+pub fn unless_exists(path: &Path, f: impl Fn()) {
+    if matches!(path.try_exists(), Err(_) | Ok(false)) {
+        f()
+    }
 }

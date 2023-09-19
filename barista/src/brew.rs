@@ -2,7 +2,7 @@ use std::process::{Command, Stdio};
 
 use javaup::config;
 
-use crate::{config::Config, roast::roast};
+use crate::roast::roast;
 
 pub fn brew() {
     roast();
@@ -16,9 +16,8 @@ pub fn brew() {
     java_bin.push("java.exe");
     #[cfg(not(target_os = "windows"))]
     java_bin.push("java");
-    // TODO: need better way obtaining this brews root directory
-    let binding = Config::find_config().unwrap();
-    let root = binding.parent().unwrap().display();
+    let binding = crate::config::get_root_path().unwrap();
+    let root = binding.display();
     let mut binding = Command::new(java_bin);
     let binding = binding
         .arg("-cp")

@@ -2,6 +2,7 @@ use crate::{
     config::{BlendConfig, Config},
     utils::{FindFileError, TomlOpenError},
 };
+
 use std::{
     fs,
     io::{self, Write},

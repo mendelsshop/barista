@@ -206,8 +206,7 @@ fn write_package_to_lockfile(packed: Package, locked_lock_file: Arc<Mutex<LockFi
 }
 
 fn get_lock_path() -> PathBuf {
-    let binding = Config::find_config().unwrap();
-    let mut root = binding.parent().unwrap().to_path_buf();
+    let mut root = crate::config::get_root_path().unwrap();
     root.push("Brew.lock");
     root
 }
