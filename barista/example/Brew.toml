@@ -2,6 +2,9 @@
 name = "example"
 version = "0.1.0"
 
+[[bin]]
+name = "AWK"
+ 
 [blends.junit]
 author = "junit"
 version = "^4"

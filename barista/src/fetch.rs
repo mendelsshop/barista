@@ -1,14 +1,15 @@
 use std::{
-    fs::{File, self},
+    fs::{self, File},
     io::Write,
-    path::{PathBuf, Path},
+    path::{Path, PathBuf},
     str::FromStr,
     sync::{Arc, Mutex},
 };
 
 use crate::{
     config::{BlendConfig, Config},
-    lock::{LockFile, Package}, utils::unless_exists,
+    lock::{LockFile, Package},
+    utils::unless_exists,
 };
 use async_recursion::async_recursion;
 use lenient_semver::Version;

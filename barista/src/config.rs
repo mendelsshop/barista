@@ -9,6 +9,13 @@ use crate::utils::{find_file, open_toml, FindFileError, TomlOpenError};
 pub struct Config {
     brew: BrewConfig,
     blends: HashMap<String, BlendConfig>,
+    bin: Option<Vec<Bin>>,
+}
+
+#[derive(Deserialize, Serialize, Debug)]
+pub struct Bin {
+    name: String,
+    path: Option<String>,
 }
 
 #[derive(Deserialize, Serialize, Debug)]
@@ -91,6 +98,7 @@ impl Config {
                 version: Version::new(0, 1, 0),
             },
             blends: HashMap::new(),
+            bin: None,
         }
     }
 
@@ -121,6 +129,27 @@ impl Config {
     pub fn brew(&self) -> &BrewConfig {
         &self.brew
     }
+    pub fn find_bin(&self, bin_name: String) -> Result<PathBuf, BinNotFoundError> {
+        self.bin
+            .as_ref()
+            .ok_or(BinNotFoundError::NoTargetsSpecefied)?
+            .iter()
+            .find_map(|bin| {
+                (bin.name == bin_name).then(|| {
+                    bin.path.as_ref().map_or_else(
+                        || PathBuf::from_iter(["bin", &(bin.name.clone() + ".java")]),
+                        PathBuf::from,
+                    )
+                })
+            })
+            .ok_or(BinNotFoundError::NoTargetsMatched(bin_name))
+    }
+}
+
+#[derive(Debug)]
+pub enum BinNotFoundError {
+    NoTargetsSpecefied,
+    NoTargetsMatched(String),
 }
 
 #[derive(Debug)]

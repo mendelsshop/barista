@@ -1,13 +1,17 @@
 // javac -cp lib/* src/Main.java
-use std::process::{Command, Stdio};
+use std::{
+    path::PathBuf,
+    process::{Command, Stdio},
+};
 
 // // javac -c lib/* main & java -c lib/* main
 use javaup::config;
 
 use crate::config::Config;
 
-pub fn roast() {
-    Config::find_and_open_config().unwrap().fetch();
+pub fn roast(bin: Option<String>) {
+    let config = Config::find_and_open_config().unwrap();
+    config.fetch();
     let binding = crate::config::get_root_path().unwrap();
     let root = binding.display();
     let java_config = config::config_file();
@@ -19,12 +23,17 @@ pub fn roast() {
     java_bin.push("javac.exe");
     #[cfg(not(target_os = "windows"))]
     java_bin.push("javac");
-
+    let binding = bin
+        .map(|bin| config.find_bin(bin).unwrap())
+        .unwrap_or(PathBuf::from("Main.java"));
+    let bin_path = binding.display();
     let mut binding = Command::new(java_bin);
     let javac_ex = binding
         .arg("-cp")
         .arg(format!("{root}/lib/*",))
-        .arg(format!("{root}/src/Main.java"))
+        .arg("--source-path")
+        .arg(format!("{root}/src"))
+        .arg(format!("{root}/src/{bin_path}"))
         .arg("-d")
         .arg(format!("{root}/bin"))
         .stdout(Stdio::inherit())

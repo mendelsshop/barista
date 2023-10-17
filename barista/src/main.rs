@@ -3,6 +3,7 @@
 // TODO: check if file/dir is already there and in most cases if so do nothing
 use std::process::exit;
 
+use crate::roast::roast;
 use crate::{brew::brew, mix::add_dependency};
 use clap::{arg, Parser, Subcommand};
 use config::BlendConfig;
@@ -25,6 +26,8 @@ mod utils;
 struct Args {
     #[clap(subcommand)]
     command: CommandType,
+    #[clap(long)]
+    bin: Option<String>,
 }
 #[derive(Subcommand, Clone, Debug)]
 pub enum CommandType {
@@ -83,8 +86,8 @@ impl From<Blend> for BlendConfig {
 fn main() {
     let args = Args::parse();
     match args.command {
-        CommandType::Brew => brew(),
-        CommandType::Roast => {}
+        CommandType::Brew => brew(args.bin),
+        CommandType::Roast => roast(args.bin),
         CommandType::Craft { name } => {
             if let Err(e) = create_new_brew(&name) {
                 println!("Error creating new Brew\n{e}");
