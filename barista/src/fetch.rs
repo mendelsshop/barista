@@ -35,12 +35,17 @@ impl Config {
             .unwrap();
         let mut dep_handles = Vec::with_capacity(self.blends().len());
         for (dep_name, dep_info) in self.blends().clone() {
-            dep_handles.push(runtime.spawn(dep_info.fetch(dep_name, locked_lock_file.clone())));
+            if dep_info.author().is_some() {
+                dep_handles
+                    .push(runtime.spawn(dep_info.fetch_maven(dep_name, locked_lock_file.clone())));
+            } else if dep_info.path().is_some() {
+                dep_info.fetch_path();
+            }
         }
         for handle in dep_handles {
-            // The `spawn` method returns a `JoinHandle`. A `JoinHandle` is
-            // a future, so we can wait for it using `block_on`.
-            runtime.block_on(handle);
+            //     // The `spawn` method returns a `JoinHandle`. A `JoinHandle` is
+            //     // a future, so we can wait for it using `block_on`.
+            runtime.block_on(handle).unwrap();
         }
         let lock_file = locked_lock_file.lock().unwrap();
         let lock_file_path = get_lock_path();
@@ -54,7 +59,7 @@ impl Config {
     }
 }
 impl BlendConfig {
-    async fn fetch(self, name: String, locked_lock_file: Arc<Mutex<LockFile>>) {
+    async fn fetch_maven(self, name: String, locked_lock_file: Arc<Mutex<LockFile>>) {
         let client = Client::new();
         if let Some(maven_author) = self.author() {
             let req_url = format!(
@@ -98,9 +103,15 @@ impl BlendConfig {
                 blend_dep,
             )
             .await;
-        } else if let Some(path) = self.path() {
-            let dep = Config::open_config(format!("{path}{}Brew.toml", std::path::MAIN_SEPARATOR_STR))
-                .unwrap();
+        } else {
+        }
+    }
+
+    fn fetch_path(&self) {
+        if let Some(path) = self.path() {
+            let dep =
+                Config::open_config(format!("{path}{}Brew.toml", std::path::MAIN_SEPARATOR_STR))
+                    .unwrap();
             dep.jar(&path);
         }
     }
@@ -155,6 +166,7 @@ async fn finish_download_dep(
 }
 
 // donwlads a dependencies dependencies, gets its own function, b/c we don't need to do version resolution
+#[async_recursion]
 async fn download_dep_dep(
     client: Client,
     pom_url: &str,

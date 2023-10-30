@@ -15,11 +15,11 @@ mod brew;
 mod config;
 mod craft;
 mod fetch;
+mod jar;
 mod lock;
 mod menu;
 mod mix;
 mod roast;
-mod jar;
 mod utils;
 
 #[derive(Parser, Debug)]
@@ -35,7 +35,11 @@ pub enum CommandType {
     /// Build and run the current [Brew] (package)
     Brew,
     /// Build the current [Brew] (package)
-    Roast,
+    Roast {
+        /// compile to jar
+        #[clap(long)]
+        jar: bool,
+    },
     /// Create a new [Brew] (package) with the given name
     Craft { name: String },
     /// Add a new [Blend] (dependency) to the current brew
@@ -87,8 +91,8 @@ impl From<Blend> for BlendConfig {
 fn main() {
     let args = Args::parse();
     match args.command {
-        CommandType::Brew => brew(args.bin),
-        CommandType::Roast => roast(args.bin),
+        CommandType::Brew {} => brew(args.bin),
+        CommandType::Roast {jar} => roast(args.bin),
         CommandType::Craft { name } => {
             if let Err(e) = create_new_brew(&name) {
                 println!("Error creating new Brew\n{e}");

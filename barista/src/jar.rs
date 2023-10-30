@@ -19,7 +19,7 @@ impl Config {
         #[cfg(target_os = "windows")]
         {
             jar_bin.push("jar.exe");
-            java_bin.push("javac..exe");
+            java_bin.push("javac.exe");
         }
         #[cfg(not(target_os = "windows"))]
         {
@@ -41,11 +41,10 @@ impl Config {
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
 
-        javac_ex.status().unwrap();
-        
+            javac_ex.status().unwrap();
         let mut binding = Command::new(jar_bin);
         let bindings = binding.current_dir("bin");
-        bindings.arg("-cf").arg(format!("{}-{}.{}",self.brew().name(),self.brew().version(),"jar")).arg("Library.java")    .stdout(Stdio::inherit())
+        bindings.arg("-cf").arg(format!("{}-{}.{}",self.brew().name(),self.brew().version(),"jar")).arg("Library.class")    .stdout(Stdio::inherit())
             .stderr(Stdio::inherit()).status().unwrap();
         
     }

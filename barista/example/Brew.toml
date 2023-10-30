@@ -4,7 +4,7 @@ version = "0.1.0"
 
 [[bin]]
 name = "AWK"
- 
+
 [blends.junit]
 author = "junit"
 version = "^4"
@@ -18,5 +18,5 @@ author = "net.oneandone"
 version = "*"
 
 [blends.dep]
-version="*"
-path ="../dep"
+version = "*"
+path = "../dep"
