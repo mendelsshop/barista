@@ -37,6 +37,29 @@ pub fn find_file(file_name: &str) -> Result<PathBuf, FindFileError> {
         })
         .ok_or(FindFileError::FileNotFound(file_name.to_string()))
 }
+/// Tries to find a config file in the current directory or any of its ancestors
+pub fn find_file_in_dir(file_name: &str) -> Result<PathBuf, FindFileError> {
+    std::env::current_dir()
+        .map_err(FindFileError::IO)?
+        .ancestors()
+        .find_map(|dir| {
+            if let Ok(mut dir) = dir.read_dir() {
+                dir.find_map(|file| {
+                    if let Ok(file) = file {
+                        if let Ok(file_type) = file.file_type() {
+                            if file_type.is_file() && file.path().ends_with(file_name) {
+                                return Some(file.path());
+                            }
+                        }
+                    }
+                    None
+                })
+            } else {
+                None
+            }
+        })
+        .ok_or(FindFileError::FileNotFound(file_name.to_string()))
+}
 #[derive(Debug, thiserror::Error)]
 pub enum TomlOpenError {
     #[error("error could not open file: {0}, path: {1}")]
@@ -56,8 +79,8 @@ pub fn open_toml<T: for<'a> Deserialize<'a>>(path: &PathBuf) -> Result<T, TomlOp
     toml::from_str(&buf).map_err(|error| TomlOpenError::Toml(error, path.display().to_string()))
 }
 
-pub fn unless_exists(path: &Path, f: impl Fn()) {
-    if matches!(path.try_exists(), Err(_) | Ok(false)) {
+pub fn unless_exists(path: impl Into<PathBuf>, f: impl Fn()) {
+    if matches!(path.into().as_path().try_exists(), Err(_) | Ok(false)) {
         f()
     }
 }

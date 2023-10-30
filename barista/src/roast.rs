@@ -7,7 +7,7 @@ use std::{
 // // javac -c lib/* main & java -c lib/* main
 use javaup::config;
 
-use crate::config::Config;
+use crate::{config::Config, utils::unless_exists};
 
 pub fn roast(bin: Option<String>) {
     let config = Config::find_and_open_config().unwrap();
@@ -28,6 +28,7 @@ pub fn roast(bin: Option<String>) {
         .unwrap_or(PathBuf::from("Main.java"));
     let bin_path = binding.display();
     let mut binding = Command::new(java_bin);
+    unless_exists(format!("{root}/src/{bin_path}"), ||{panic!("not bin target found")});
     let javac_ex = binding
         .arg("-cp")
         .arg(format!("{root}/lib/*",))

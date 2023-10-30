@@ -35,13 +35,12 @@ impl Config {
             .unwrap();
         let mut dep_handles = Vec::with_capacity(self.blends().len());
         for (dep_name, dep_info) in self.blends().clone() {
-            dep_handles
-                .push(runtime.spawn(dep_info.fetch_maven(dep_name, locked_lock_file.clone())));
+            dep_handles.push(runtime.spawn(dep_info.fetch(dep_name, locked_lock_file.clone())));
         }
         for handle in dep_handles {
             // The `spawn` method returns a `JoinHandle`. A `JoinHandle` is
             // a future, so we can wait for it using `block_on`.
-            runtime.block_on(handle).unwrap();
+            runtime.block_on(handle);
         }
         let lock_file = locked_lock_file.lock().unwrap();
         let lock_file_path = get_lock_path();
@@ -55,7 +54,7 @@ impl Config {
     }
 }
 impl BlendConfig {
-    async fn fetch_maven(self, name: String, locked_lock_file: Arc<Mutex<LockFile>>) {
+    async fn fetch(self, name: String, locked_lock_file: Arc<Mutex<LockFile>>) {
         let client = Client::new();
         if let Some(maven_author) = self.author() {
             let req_url = format!(
@@ -99,8 +98,10 @@ impl BlendConfig {
                 blend_dep,
             )
             .await;
-        } else {
-            panic!()
+        } else if let Some(path) = self.path() {
+            let dep = Config::open_config(format!("{path}{}Brew.toml", std::path::MAIN_SEPARATOR_STR))
+                .unwrap();
+            dep.jar(&path);
         }
     }
 

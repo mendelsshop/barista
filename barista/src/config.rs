@@ -82,6 +82,10 @@ impl BlendConfig {
     pub fn version(&self) -> &VersionReq {
         &self.version
     }
+
+    pub fn path(&self) -> Option<&String> {
+        self.path.as_ref()
+    }
 }
 #[derive(Debug)]
 pub enum OpenConfigError {
@@ -102,8 +106,8 @@ impl Config {
         }
     }
 
-    pub fn open_config(path: &PathBuf) -> Result<Self, TomlOpenError> {
-        open_toml(path)
+    pub fn open_config(path: impl Into<PathBuf>) -> Result<Self, TomlOpenError> {
+        open_toml(&path.into())
     }
 
     pub fn find_and_open_config() -> Result<Self, OpenConfigError> {

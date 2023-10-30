@@ -19,6 +19,7 @@ mod lock;
 mod menu;
 mod mix;
 mod roast;
+mod jar;
 mod utils;
 
 #[derive(Parser, Debug)]

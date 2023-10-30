@@ -17,3 +17,6 @@ version = "^5"
 author = "net.oneandone"
 version = "*"
 
+[blends.dep]
+version="*"
+path ="../dep"
