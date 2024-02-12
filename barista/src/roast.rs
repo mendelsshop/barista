@@ -39,6 +39,6 @@ pub fn roast(bin: Option<String>) {
         .arg(format!("{root}/bin"))
         .stdout(Stdio::inherit())
         .stderr(Stdio::inherit());
-
+    println!("{:?}", javac_ex);
     javac_ex.status().unwrap();
 }

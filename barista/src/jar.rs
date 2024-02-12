@@ -37,15 +37,25 @@ impl Config {
             .arg(format!("{path}/src"))
             .arg(format!("{path}/src/Library.java"))
             .arg("-d")
-            .arg(format!("{root}/bin"))
+            .arg(format!("{root}/bin/{}/", self.brew().name()))
             .stdout(Stdio::inherit())
             .stderr(Stdio::inherit());
 
-            javac_ex.status().unwrap();
+        javac_ex.status().unwrap();
         let mut binding = Command::new(jar_bin);
-        let bindings = binding.current_dir("bin");
-        bindings.arg("-cf").arg(format!("{}-{}.{}",self.brew().name(),self.brew().version(),"jar")).arg("Library.class")    .stdout(Stdio::inherit())
-            .stderr(Stdio::inherit()).status().unwrap();
-        
+        let bindings = binding.current_dir(format!("bin"));
+        bindings
+            .arg("-cf")
+            .arg(format!(
+                "../lib/{}-{}.{}",
+                self.brew().name(),
+                self.brew().version(),
+                "jar"
+            ))
+            .arg(self.brew().name())
+            .stdout(Stdio::inherit())
+            .stderr(Stdio::inherit())
+            .status()
+            .unwrap();
     }
 }
