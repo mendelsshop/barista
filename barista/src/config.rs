@@ -8,6 +8,7 @@ use crate::utils::{find_file, open_toml, FindFileError, TomlOpenError};
 #[derive(Deserialize, Serialize, Debug)]
 pub struct Config {
     brew: BrewConfig,
+    #[serde(default)]
     blends: HashMap<String, BlendConfig>,
     bin: Option<Vec<Bin>>,
 }
