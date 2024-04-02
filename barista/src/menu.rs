@@ -1,6 +1,7 @@
 use std::{
     fs,
     io::ErrorKind,
+    path::PathBuf,
     process::{Command, Stdio},
 };
 
@@ -30,16 +31,21 @@ pub fn make_menu() {
     #[cfg(not(target_os = "windows"))]
     java_bin.push("javadoc");
 
+    // TODO: make this not hard coded also allow multiple all parts to be deocmneted
+    let bin_path =
+        PathBuf::from_iter(([root.to_string(), "src".to_string(), "Main".to_string(),  "Main.java".to_string()]));
+    let bin_path = bin_path.display();
     let mut binding = Command::new(java_bin);
     let javac_ex = binding
-        .arg("-cp")
-        .arg(format!("{root}/lib/*",))
-        .arg(format!("{root}/src/Main.java"))
         .arg("-d")
         .arg(format!("{root}/doc"))
+        .arg("--source-path")
+        .arg(format!("{root}/src/"))
+        .arg(format!("{bin_path}"))
         // ignoring output untill we have good way to filter/present it
-        .stdout(Stdio::null())
-        .stderr(Stdio::null());
+        // .stdout(Stdio::null())
+        // .stderr(Stdio::null())
+        ;
 
     javac_ex.status().unwrap();
 }

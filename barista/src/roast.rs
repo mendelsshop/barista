@@ -32,8 +32,7 @@ pub fn roast(bin: Option<String>) {
     let mut binding = Command::new(java_bin);
     println!("{bin_path}");
     let bin_path =
-        PathBuf::from_iter(([root.to_string(), "src".to_string(), bin_path.to_string()]))
-        ;
+        PathBuf::from_iter(([root.to_string(), "src".to_string(), bin_path.to_string()]));
     unless_exists(bin_path.clone(), || panic!("not bin target found"));
     let bin_path = bin_path.display();
     let javac_ex = binding

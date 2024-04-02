@@ -21,6 +21,7 @@ mod menu;
 mod mix;
 mod roast;
 mod utils;
+pub mod sip;
 
 #[derive(Parser, Debug)]
 #[clap(author, version, about, long_about = None)]
@@ -46,6 +47,10 @@ pub enum CommandType {
     Mix(Blend),
     /// Document the current [Blend]
     Menu,
+    /// Run Tests
+    Sip {
+        filter: Option<String>
+    }
 }
 #[derive(clap::Parser, Clone, Debug)]
 #[clap(args_conflicts_with_subcommands = true)]
@@ -106,5 +111,6 @@ fn main() {
             }
         }
         CommandType::Menu => make_menu(),
+        CommandType::Sip { filter } => sip::sip(filter),
     }
 }
